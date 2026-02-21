@@ -252,6 +252,7 @@ Ref! core session model
 ## Scopes
 
 Scopes are optional lowercase identifiers that describe where in the system the change occurred. Use them when they add context. Omit them when the description is already clear.
+Scope terms should be stable domain nouns (for example `api`, `ui`, `auth`, `ci`, `spec`), not action words.
 
 **Common scopes:**
 ```
@@ -285,6 +286,7 @@ Scope decision rule:
 - Add one scope only when omitting it would hide meaningful location context
 - Use two scopes only for true cross-boundary changes
 - If uncertain, prefer no scope over speculative scope
+- Scope should be a domain noun, not a verb/adjective (`improve`, `update`, `better` are invalid scope terms)
 
 ## Descriptions
 
@@ -428,6 +430,13 @@ Extended profile normative validation pattern:
 ```
 
 This validates a valid Type, an optional `!`, zero to two lowercase scope tokens, and a lowercase description.
+Regex alone does not semantically decide scope vs description when scope is omitted. For deterministic tooling, apply the scope allowlist parser rule below.
+
+Deterministic parsing rule for tooling:
+
+- Projects should define a scope allowlist
+- Token 2 is treated as scope only when it matches the allowlist (or two allowlisted tokens)
+- If token 2 is not allowlisted, parse from token 2 as description start
 
 Core profile validation pattern:
 
