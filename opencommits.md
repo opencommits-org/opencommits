@@ -43,6 +43,8 @@ Opt db transaction batching
 ```
 
 OpenCommits is easier to scan, consistent in rhythm, and free of colons, parentheses, and noisy punctuation.
+It preserves natural sentence flow while enforcing a strict 3-character Type prefix.
+That makes commit history readable by humans, not just parsers.
 
 ## Format
 
@@ -56,6 +58,25 @@ Type[!] [scope] description
 - **description** — lowercase, concise, human-readable, no trailing period
 
 No colons. No parentheses. No brackets. No mandatory footers.
+
+## Compliance Profiles
+
+OpenCommits defines two compliance profiles so teams and tooling can be explicit:
+
+- **Core profile** — only Core Types are valid
+- **Extended profile** — Core + Extended Types are valid
+
+Core profile regex:
+
+```
+^(Add|Fix|Ref|Opt|Rmv|Doc|Tst|Sty|Chr|Rev)(!)?( [a-z][a-z0-9]*){0,2} [a-z].+$
+```
+
+Extended profile regex:
+
+```
+^(Add|Fix|Ref|Opt|Rmv|Doc|Tst|Sty|Chr|Mov|Rnm|Dep|Sec|Cfg|Rev)(!)?( [a-z][a-z0-9]*){0,2} [a-z].+$
+```
 
 ## Types
 
@@ -147,6 +168,19 @@ Chr upgrade react to 19
 Chr update eslint config
 ```
 
+#### `Rev`
+**Commit reversals.**
+Revert of a previous commit while preserving history.
+```
+Rev fix api timeout
+Rev add new checkout flow
+Rev ref core cache manager
+```
+
+Do not repeat “revert” in the description — `Rev` already communicates intent. Reference the original commit's Type and description to keep the history traceable. In the commit body, include the reverted commit hash when available.
+
+`Rev!` is valid when the rollback itself introduces a breaking change.
+
 ### Extended Types
 
 Extended Types are optional. Teams adopt them when the distinction adds meaningful value to their history. Because they are officially defined in this spec, they mean the same thing in every codebase that uses them.
@@ -189,20 +223,18 @@ Cfg adjust webpack production settings
 Cfg update editorconfig rules
 ```
 
-### Reverts
+## Type Selection Rules
 
-#### `Rev`
-**Commit reversals.**
-Revert of a previous commit while preserving history.
-```
-Rev fix api timeout
-Rev add new checkout flow
-Rev ref core cache manager
-```
+When multiple Types seem plausible, use these tie-break rules:
 
-Do not repeat “revert” in the description — `Rev` already communicates intent. Reference the original commit's Type and description to keep the history traceable.
-
-`Rev!` is valid when the rollback itself introduces a breaking change.
+- `Add` over `Ref` when user-facing capability is added
+- `Fix` over `Ref` when incorrect behavior is corrected
+- `Opt` only when performance improvement is the primary intent
+- `Cfg` for configuration-only diffs (runtime, tooling, project config files)
+- `Chr` for maintenance/tooling/dependency/CI work that is not config-only
+- `Ref` for structural code changes with no behavior change
+- `Mov`/`Rnm` when move/rename intent should stay visible in history
+- `Sec` when security visibility or audit traceability is a primary goal
 
 ## Breaking Changes
 
@@ -247,9 +279,17 @@ Fix ui a11y button contrast
 Ref core api request builder
 ```
 
+Scope decision rule:
+
+- Default to no scope
+- Add one scope only when omitting it would hide meaningful location context
+- Use two scopes only for true cross-boundary changes
+- If uncertain, prefer no scope over speculative scope
+
 ## Descriptions
 
 Descriptions should be lowercase, concise, specific, and have no trailing period.
+Prefer natural sentence flow whenever possible to reduce scan effort in `git log --oneline`.
 
 **Good:**
 ```
@@ -268,6 +308,21 @@ Update things
 ```
 
 Write for someone scanning `git log --oneline` at speed.
+
+Common corrections (invalid or too vague -> stronger):
+
+```
+fix login redirect loop                     -> Fix login redirect loop
+Fix API pagination issue                    -> Fix api pagination issue
+Fix login redirect loop.                    -> Fix login redirect loop
+Add ui                                      -> Add ui profile menu
+Chr update stuff                            -> Chr ci update deploy workflow
+Ref ui api                                  -> Ref ui api request builder
+Rev revert fix login redirect loop          -> Rev fix login redirect loop
+Sec fix csrf vulnerability in forms.        -> Sec fix csrf vulnerability in forms
+Cfg Update webpack production settings      -> Cfg update webpack production settings
+Fix! api breaking pagination changes        -> (too vague) -> Fix! api pagination now returns zero-indexed results
+```
 
 ## SemVer Mapping
 
@@ -366,13 +421,19 @@ Strict on type semantics. Flexible on scope usage. Forgiving on description tone
 
 ## Appendix: Validation Pattern
 
-The normative validation pattern:
+Extended profile normative validation pattern:
 
 ```
 ^(Add|Fix|Ref|Opt|Rmv|Doc|Tst|Sty|Chr|Mov|Rnm|Dep|Sec|Cfg|Rev)(!)?( [a-z][a-z0-9]*){0,2} [a-z].+$
 ```
 
 This validates a valid Type, an optional `!`, zero to two lowercase scope tokens, and a lowercase description.
+
+Core profile validation pattern:
+
+```
+^(Add|Fix|Ref|Opt|Rmv|Doc|Tst|Sty|Chr|Rev)(!)?( [a-z][a-z0-9]*){0,2} [a-z].+$
+```
 
 Strict profile — single scope only:
 
